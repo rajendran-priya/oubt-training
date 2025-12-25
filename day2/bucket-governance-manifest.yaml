@@ -1,0 +1,21 @@
+# S3 Bucket Governance Manifest
+bucket_info:
+  name: "oubt-training-priya-2025"
+  created_at: "2025-12-24"
+  region: "us-east-1"
+
+ownership:
+  department: "Cloud-Engineering"
+  primary_owner: "Priya Rajendran"
+  contact_email: "priya@example.com"
+
+governance:
+  classification: "Internal"
+  purpose: "Boto3 Training and Hands-on Labs"
+  retention_policy: "Delete after 30 days"
+  pii_content: false
+
+prefixes:
+  day1/: "Initial setup and CLI tests"
+  day2/: "Boto3 automation and lifecycle labs"
+  temp/: "Transient data for testing"
