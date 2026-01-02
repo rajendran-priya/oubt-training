@@ -58,6 +58,7 @@ jobs:
         # If this fails, the PR will show a failure, preventing unsafe merges
 
       - name: Terraform Apply
+        run: terraform apply -auto-approve
         # IMPORTANT: Only 'apply' if it's a PUSH (merge), not a Pull Request
         if: github.event_name == 'push' && github.ref == 'refs/heads/ci/cd-github-actions'
         env:
