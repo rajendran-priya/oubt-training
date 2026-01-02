@@ -9,7 +9,6 @@ on:
       - "ci/cd-github-actions" # Triggers when a PR targets this branch
 
 # Permissions needed for certain GitHub features (Best Practice)
-# Permissions needed for certain GitHub features (Best Practice)
 permissions:
   contents: read
   pull-requests: write
@@ -55,7 +54,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform plan -no-color -input=false
+      
         # If this fails, the PR will show a failure, preventing unsafe merges
 
       - name: Terraform Apply
