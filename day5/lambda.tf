@@ -31,6 +31,7 @@ resource "aws_lambda_function" "s3_processor" {
 }
 
 # 4. Give S3 permission to invoke this Lambda
+# 4. Give S3 permission to invoke this Lambda
 resource "aws_lambda_permission" "allow_bucket" {
   statement_id  = "AllowExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
