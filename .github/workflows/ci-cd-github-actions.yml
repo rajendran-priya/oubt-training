@@ -9,6 +9,7 @@ on:
       - "ci/cd-github-actions" # Triggers when a PR targets this branch
 
 # Permissions needed for certain GitHub features (Best Practice)
+# Permissions needed for certain GitHub features (Best Practice)
 permissions:
   contents: read
   pull-requests: write
