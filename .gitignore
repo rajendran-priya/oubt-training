@@ -1,1 +1,14 @@
 .DS_Store
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files (These are in S3, don't store them in Git)
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
+# Ignore variables files (can contain secrets)
+*.tfvars
+*.tfvars.json
