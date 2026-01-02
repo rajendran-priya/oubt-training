@@ -49,6 +49,7 @@ jobs:
         run: terraform validate -no-color
 
       - name: Terraform Plan
+        run: terraform apply -auto-approve
         id: plan
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
