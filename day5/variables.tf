@@ -9,3 +9,4 @@ variable "bucket_name" {
   type        = string
   default     = "day5-terraform-oubt-training-v2"
 }
+#Trigger run
