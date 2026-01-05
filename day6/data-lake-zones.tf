@@ -21,7 +21,6 @@ locals {
     gold   = "Public"
   }
 }
-
 resource "aws_s3_bucket" "datalake_buckets" {
   for_each = local.zones
   bucket   = "${var.project_name}-${each.key}-${var.environment}"
