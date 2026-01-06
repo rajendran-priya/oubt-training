@@ -35,10 +35,10 @@ matches = features[features['score'] == 1.0]
 print("Matches Found:")
 print(matches)
 
-# 1. Convert the 'matches' MultiIndex into a standard DataFrame
+#  Convert the 'matches' MultiIndex into a standard DataFrame
 df_matches = matches.reset_index()
 
-# 2. Merge with 'messy_data' to get the original messy names
+# Merge with 'messy_data' to get the original messy names
 df_comparison = pd.merge(
     df_matches, 
     messy_data[['Zone_Name']], 
@@ -46,7 +46,7 @@ df_comparison = pd.merge(
     right_index=True
 )
 
-# 3. Merge with 'df_zones' to get the official NYC names
+#  Merge with 'df_zones' to get the official NYC names
 df_comparison = pd.merge(
     df_comparison, 
     df_zones[['Zone']], 
