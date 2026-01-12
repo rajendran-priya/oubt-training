@@ -1,8 +1,10 @@
 name: Upload scripts to S3
 
 on:
-  push: {}
-  pull_request: {}
+  push:
+    branches: [ci/cd-github-actions]
+  pull_request:
+    branches: [ci/cd-github-actions]
 
 # Behavior configuration
 env:
@@ -17,10 +19,6 @@ env:
 jobs:
   upload-to-s3:
     runs-on: ubuntu-latest
-    env:
-      UPLOAD_PATH: ${{ env.UPLOAD_PATH }}
-      S3_TARGET: ${{ env.S3_TARGET }}
-      BRANCH_NAME: ${{ env.BRANCH_NAME }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,14 +37,14 @@ jobs:
           fi
 
       - name: Configure AWS credentials (OIDC)
-        if: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME != '' }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Configure AWS credentials (access keys)
-        if: ${{ !secrets.AWS_ROLE_TO_ASSUME }}
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME == '' }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
