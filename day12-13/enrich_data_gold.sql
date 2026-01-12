@@ -1,50 +1,56 @@
 /* =========================================================
  * AUTHOR:              Priya Rajendran
- * DATE:                2026-01-11
+ * DATE:                2026-01-12
  * PROJECT:             NYC Taxi Analytics (Hands-on)
  * LAYER:               GOLD (Enrichment & Business Insights)
- * PURPOSE:             Join Silver data with Zone lookup and calculate metrics.
- * DEPENDENCIES:        "day12-sql-transformations"."silver_yellow_taxi"
+ * PURPOSE:             Create physical Gold table in S3.
  * =========================================================
  */
 
--- Step 1: Create a View for the Gold Layer
-CREATE OR REPLACE VIEW "day12-sql-transformations"."enriched_taxi_trips_gold" AS
+CREATE TABLE "day12-sql-transformations"."enriched_taxi_trips_gold_table"
+WITH (
+  format = 'PARQUET',
+  external_location = 's3://day12-sql-transformations/enriched_gold/',
+  parquet_compression = 'SNAPPY'
+) AS
+-- Use a WITH clause (CTE) to prepare the data first
 WITH trip_enrichment AS (
     SELECT 
         t.*,
-        -- Calculate Duration in Minutes
-        date_diff('minute', t.pickup_time, t.dropoff_time) AS duration_min,
+        -- Calculate Duration
+        date_diff('minute', CAST(t.pickup_time AS TIMESTAMP), CAST(t.dropoff_time AS TIMESTAMP)) AS duration_min,
         
-        -- Categorize Trip Distance
+        -- Time of Day Categorization
         CASE 
-            WHEN t.trip_distance < 2 THEN 'Short-Haul'
-            WHEN t.trip_distance BETWEEN 2 AND 10 THEN 'Medium-Haul'
-            ELSE 'Long-Haul' 
-        END AS trip_category,
+            WHEN hour(CAST(t.pickup_time AS TIMESTAMP)) BETWEEN 6 AND 10 THEN 'Morning Rush'
+            WHEN hour(CAST(t.pickup_time AS TIMESTAMP)) BETWEEN 16 AND 20 THEN 'Evening Rush'
+            WHEN hour(CAST(t.pickup_time AS TIMESTAMP)) >= 23 OR hour(CAST(t.pickup_time AS TIMESTAMP)) < 5 THEN 'Overnight'
+            ELSE 'Mid-Day'
+        END AS shift_type,
         
-        -- Pickup Location Details from Lookup Table
         z_pu.borough AS pickup_borough,
-        z_pu.zone AS pickup_zone_name,
-        z_pu.service_zone AS pickup_service_area
+        z_do.borough AS dropoff_borough
     FROM 
         "day12-sql-transformations"."silver_yellow_taxi" t
     LEFT JOIN 
-        "AwsDataCatalog"."day12-sql-transformations"."taxi_zone_lookup" z_pu 
-        ON t.pickup_location_id = z_pu.locationid
+        "day12-sql-transformations"."master_data" z_pu 
+        ON t.pickup_zone = z_pu.locationid
+    LEFT JOIN 
+        "day12-sql-transformations"."master_data" z_do 
+        ON t.dropoff_zone = z_do.locationid
 )
+-- Now perform the final aggregation for the physical table
 SELECT 
     pickup_borough,
-    trip_category,
+    dropoff_borough,
+    shift_type,
     COUNT(*) AS total_trips,
-    SUM(total_paid) AS total_revenue,
-    AVG(duration_min) AS avg_duration_min,
-    AVG(tip_amount) AS avg_tip_amount,
-    SUM(airport_fee) AS total_airport_fees,
-    CURRENT_DATE AS report_date
+    ROUND(SUM(total_paid), 2) AS total_revenue,
+    ROUND(AVG(duration_min), 2) AS avg_duration_min,
+    ROUND(SUM(total_paid) / NULLIF(SUM(duration_min), 0), 2) AS rev_per_minute
 FROM 
     trip_enrichment
 GROUP BY 
-    1, 2
+    1, 2, 3
 ORDER BY 
     total_revenue DESC;
