@@ -16,7 +16,8 @@ WITH (
 -- Use a WITH clause (CTE) to prepare the data first
 WITH trip_enrichment AS (
     SELECT 
-        t.*,
+        t.total_paid,
+        t.tip_amount,
         -- Calculate Duration
         date_diff('minute', CAST(t.pickup_time AS TIMESTAMP), CAST(t.dropoff_time AS TIMESTAMP)) AS duration_min,
         
