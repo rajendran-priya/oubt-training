@@ -16,9 +16,10 @@
 
 */
 
-DROP TABLE IF EXISTS `day12-sql-transformations`.`silver_yellow_taxi`;
+--DROP TABLE IF EXISTS "day12-sql-transformations"."silver_yellow_taxi";
+--DROP TABLE IF EXISTS `day12-sql-transformations`.`silver_yellow_taxi`
 
-CREATE TABLE "day12-sql-transformations"."silver_yellow_taxi" AS
+--CREATE TABLE "day12-sql-transformations"."silver_yellow_taxi" AS
 
 SELECT DISTINCT--------------------------------removes duplicates
 CAST(vendorid AS INT) AS vendor_id,
@@ -27,9 +28,10 @@ CAST(tpep_dropoff_datetime AS TIMESTAMP) AS dropoff_time,
 CAST(passenger_count AS INT) AS passenger_count,
 CAST(trip_distance AS DOUBLE) AS trip_distance,
 pulocationid AS pickup_zone,
-dolocationid AS dropoff_location_id,
+dolocationid AS dropoff_zone,
 -- Financial Surcharges
-CAST(ratecodeid AS INT) AS rate_code_id
+CAST(ratecodeid AS INT) AS rate_code_id,
+CAST(payment_type AS INT) AS payment_type,
 CAST(fare_amount AS DECIMAL(10,2)) AS fare_amount,
 CAST(tip_amount AS DECIMAL(10,2)) AS tip_amount,
 CAST(tolls_amount AS DECIMAL(10,2)) AS tolls_amount,
@@ -40,7 +42,7 @@ CAST(total_amount AS DECIMAL(10,2)) AS total_paid
 
 FROM
 
-"AwsDataCatalog"."day12-sql-transformations"."day12_sql_transformations"
+"AwsDataCatalog"."day12-sql-transformations"."raw"
 
 WHERE
 
