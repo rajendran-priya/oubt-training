@@ -1,0 +1,62 @@
+name: Upload scripts to S3
+
+on:
+  push: {}
+  pull_request: {}
+
+# Behavior configuration
+env:
+  # If set, the workflow will only run the upload on this branch. Leave empty to run on any branch.
+  BRANCH_NAME: "ci/cd-github-actions"
+  # Path in the repository to upload (default: repository root)
+  # Set to the folder you requested so only its contents are synced.
+  UPLOAD_PATH: "day12-13"
+  # Full S3 target (configured per request)
+  S3_TARGET: "s3://day12-sql-transformations/transformed_silver/"
+
+jobs:
+  upload-to-s3:
+    runs-on: ubuntu-latest
+    env:
+      UPLOAD_PATH: ${{ env.UPLOAD_PATH }}
+      S3_TARGET: ${{ env.S3_TARGET }}
+      BRANCH_NAME: ${{ env.BRANCH_NAME }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Skip upload if not target branch
+        run: |
+          if [ -n "${BRANCH_NAME}" ]; then
+            BR=${GITHUB_REF#refs/heads/}
+            echo "Current branch: $BR"
+            if [ "$BR" != "${BRANCH_NAME}" ]; then
+              echo "Not target branch (${BRANCH_NAME}); skipping upload."
+              exit 0
+            fi
+          else
+            echo "No target branch configured; uploading on any branch."
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Configure AWS credentials (access keys)
+        if: ${{ !secrets.AWS_ROLE_TO_ASSUME }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload to S3
+        run: |
+          echo "Uploading ${UPLOAD_PATH} to ${S3_TARGET}"
+          aws s3 sync "${UPLOAD_PATH}" "${S3_TARGET}" --delete --exclude ".git/*" --exclude "node_modules/*" --exclude ".github/*"
+
+      - name: Done
+        run: echo "Upload finished"
