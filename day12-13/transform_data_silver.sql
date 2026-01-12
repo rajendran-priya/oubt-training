@@ -19,7 +19,12 @@
 --DROP TABLE IF EXISTS "day12-sql-transformations"."silver_yellow_taxi";
 --DROP TABLE IF EXISTS `day12-sql-transformations`.`silver_yellow_taxi`
 
---CREATE TABLE "day12-sql-transformations"."silver_yellow_taxi" AS
+CREATE TABLE "day12-sql-transformations"."silver_yellow_taxi" 
+WITH (
+  format = 'PARQUET',
+  external_location = 's3://day12-sql-transformations/transformed_silver/',
+  parquet_compression = 'SNAPPY'
+) AS
 
 SELECT DISTINCT--------------------------------removes duplicates
 CAST(vendorid AS INT) AS vendor_id,
