@@ -12,3 +12,6 @@ crash.log
 # Ignore variables files (can contain secrets)
 *.tfvars
 *.tfvars.json
+
+# Ignore node_modules in day12-13
+day12-13/node_modules/
