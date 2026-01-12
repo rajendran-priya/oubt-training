@@ -6,15 +6,11 @@ on:
   pull_request:
     branches: [ci/cd-github-actions]
 
-# Behavior configuration
 env:
-  # If set, the workflow will only run the upload on this branch. Leave empty to run on any branch.
   BRANCH_NAME: "ci/cd-github-actions"
-  # Path in the repository to upload (default: repository root)
-  # Set to the folder you requested so only its contents are synced.
   UPLOAD_PATH: "day12-13"
-  # Full S3 target (configured per request)
-  S3_TARGET: "s3://day12-sql-transformations/transformed_silver/"
+  S3_TARGET: "s3://day12-sql-transformations/sql-scripts/"
+  AWS_REGION: "us-east-1" # Hardcoded here if not in secrets
 
 jobs:
   upload-to-s3:
@@ -23,38 +19,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Skip upload if not target branch
+      - name: Check Branch
         run: |
-          if [ -n "${BRANCH_NAME}" ]; then
-            BR=${GITHUB_REF#refs/heads/}
-            echo "Current branch: $BR"
-            if [ "$BR" != "${BRANCH_NAME}" ]; then
-              echo "Not target branch (${BRANCH_NAME}); skipping upload."
-              exit 0
-            fi
-          else
-            echo "No target branch configured; uploading on any branch."
+          echo "Target Branch: ${{ env.BRANCH_NAME }}"
+          echo "Current Branch: ${{ github.ref_name }}"
+          if [[ "${{ github.ref_name }}" != "${{ env.BRANCH_NAME }}" ]]; then
+            echo "Branch mismatch. Skipping."
+            exit 0
           fi
 
-      - name: Configure AWS credentials (OIDC)
-        if: ${{ secrets.AWS_ROLE_TO_ASSUME != '' }}
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Configure AWS credentials (access keys)
-        if: ${{ secrets.AWS_ROLE_TO_ASSUME == '' }}
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Upload to S3
         run: |
-          echo "Uploading ${UPLOAD_PATH} to ${S3_TARGET}"
-          aws s3 sync "${UPLOAD_PATH}" "${S3_TARGET}" --delete --exclude ".git/*" --exclude "node_modules/*" --exclude ".github/*"
-
-      - name: Done
-        run: echo "Upload finished"
+          aws s3 sync "${UPLOAD_PATH}" "${S3_TARGET}" --delete \
+          --exclude ".git/*" \
+          --exclude "node_modules/*" \
+          --exclude ".github/*"
