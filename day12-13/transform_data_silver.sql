@@ -60,4 +60,4 @@ AND dolocationid IS NOT NULL
 AND passenger_count > 0
 AND trip_distance > 0
 AND fare_amount > 0
-AND tpep_pickup_datetime < tpep_dropoff_datetime;
+AND tpep_pickup_datetime < tpep_dropoff_datetime
