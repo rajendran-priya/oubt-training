@@ -25,3 +25,7 @@ ignore this file
 # Ignore package files for day12-13
 day12-13/package.json
 day12-13/package-lock.json
+
+# Ignore package files for day12-13
+day14-15/delta-lake-scd-implemetation/spark*
+
