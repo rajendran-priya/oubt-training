@@ -4,8 +4,8 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "day20/infra/**"
-      - ".github/day20-ci-cd-cloudformation.yml"
+     # - "day20/infra/**"
+     # - ".github/day20-ci-cd-cloudformation.yml"
   workflow_dispatch:
 
 permissions:
