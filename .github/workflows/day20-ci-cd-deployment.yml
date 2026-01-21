@@ -8,7 +8,6 @@ on:
 
 env:
   BUCKET: "day20-demo-oubt"
-  PREFIX: "scripts"
   AWS_REGION: "us-east-1" 
 
 jobs:
@@ -28,29 +27,37 @@ jobs:
       - name: Upload Glue and Lambda scripts to S3
         run: |
           set -euo pipefail
-          # Map of local file paths to S3 file names
-          declare -A FILES=(
+
+          # Uploading Glue Scripts to /scripts/glue/
+          declare -A GLUE_FILES=(
             [day20/glue/day20-quality-score-card.py]=day20-quality-score-card.py
             [day20/glue/day20-export-to-redshift.py]=day20-export-to-redshift.py
             [day20/glue/day20-processed-curated.py]=day20-processed-curated.py
             [day20/glue/day20-processed-mdm.py]=day20-processed-mdm.py
             [day20/glue/day20-raw-processed-dimension-tables.py]=day20-raw-processed-dimension-tables.py
             [day20/glue/day20-raw-processed.py]=day20-raw-processed.py
-            [day20/lambda/day20-lambda-validate-raw-file.py]=day20-lambda-validate-raw-file.py
           )
 
-          for SRC in "${!FILES[@]}"; do
-            DST="s3://${BUCKET}/${PREFIX}/${FILES[$SRC]}"
-            # Verify file exists before uploading to prevent demo failure
+          for SRC in "${!GLUE_FILES[@]}"; do
+            DST="s3://${BUCKET}/scripts/glue/${GLUE_FILES[$SRC]}"
             if [ -f "$SRC" ]; then
-              echo "Uploading ${SRC} -> ${DST}"
+              echo "Uploading Glue Script: ${SRC} -> ${DST}"
               aws s3 cp "$SRC" "$DST"
             else
-              echo "Warning: ${SRC} not found, skipping."
+              echo "Warning: Glue file ${SRC} not found."
             fi
           done
 
-      - name: Verify Upload
+          # Uploading Lambda Scripts to /scripts/lambda/
+          LAMBDA_SRC="day20/lambda/day20-lambda-validate-raw-file.py"
+          LAMBDA_DST="s3://${BUCKET}/scripts/lambda/day20-lambda-validate-raw-file.py"
+          
+          if [ -f "$LAMBDA_SRC" ]; then
+            echo "Uploading Lambda Script: ${LAMBDA_SRC} -> ${LAMBDA_DST}"
+            aws s3 cp "$LAMBDA_SRC" "$LAMBDA_DST"
+          fi
+
+      - name: Final S3 Audit
         run: |
-          echo "Listing files in S3 target:"
-          aws s3 ls "s3://${BUCKET}/${PREFIX}/"
+          echo "Current deployment state in S3:"
+          aws s3 ls "s3://${BUCKET}/scripts/" --recursive
