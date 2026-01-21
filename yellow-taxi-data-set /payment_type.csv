@@ -6,4 +6,4 @@ payment_type_id,description
 4,Dispute
 5,Unknown
 6,Voided trip
-99,Null/unknown
+

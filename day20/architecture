@@ -1,0 +1,45 @@
+┌──────────┐
+│  Source  │
+│ (Batch)  │
+└────┬─────┘
+     │
+     ▼
+┌────────────────────┐
+│ S3 DATA LAKE        │
+│  ├── raw/           │
+│  ├── processed/     │
+│  ├── curated/       │
+│  └── master/        │
+└────┬────────────────┘
+     │
+     ▼
+┌────────────────────┐
+│ AWS STEP FUNCTIONS │
+│ (Orchestration)    │
+└────┬────────────────┘
+     │
+     ├──► Lambda (File Validation)
+     │
+     ├──► Glue Spark Job (ETL + Delta)
+     │
+     ├──► Glue DQ Job
+     │
+     ├──► Glue MDM Job (SCD2)
+     │
+     └──► Redshift Load
+               │
+               ▼
+      ┌────────────────────┐
+      │ SERVING LAYER      │
+      │  ├── Redshift     │
+      │  └── Athena       │
+      └────┬──────────────┘
+           │
+           ▼
+     ┌────────────────────┐
+     │ QuickSight         │
+     │ Dashboards         │
+     └────────────────────┘
+
+Monitoring: CloudWatch (Glue, SFN, Lambda)
+CI/CD: GitHub → CodePipeline → CloudFormation
