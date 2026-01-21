@@ -3,10 +3,10 @@ name: "Terraform S3 CI/CD"
 on:
   push:
     branches:
-      - "ci/cd-github-actions" # Triggers when you push code to this branch
+      -  # Triggers when you push code to this branch
   pull_request:
     branches:
-      - "ci/cd-github-actions" # Triggers when a PR targets this branch
+      -# Triggers when a PR targets this branch
 
 # Permissions needed for certain GitHub features (Best Practice)
 permissions:
