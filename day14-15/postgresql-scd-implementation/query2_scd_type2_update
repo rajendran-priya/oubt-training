@@ -1,0 +1,12 @@
+-- 1. Update the city in staging
+TRUNCATE staging_customer;
+INSERT INTO staging_customer (customer_id, name, city) 
+VALUES ('C101', 'Alice Johnson', 'London');
+
+-- 2. Run the SCD Merge (Creates Version 2)
+CALL scd2_merge('ingest_service', 'Customer moved to London');
+
+-- 3. Verify: You should now see TWO rows for Alice Johnson
+-- One will have is_current = false (New York)
+-- One will have is_current = true (London)
+SELECT * FROM dim_customer ;

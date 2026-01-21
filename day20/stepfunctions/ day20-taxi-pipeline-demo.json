@@ -1,0 +1,450 @@
+{
+  "Comment": "Day20 Pipeline: Validate -> Raw/Dim Processed -> MDM -> Curated -> DQ -> Wait Crawlers -> Athena DQ Gate -> Load to Redshift -> Refresh QuickSight",
+  "StartAt": "ValidateRawFile",
+  "States": {
+    "ValidateRawFile": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:614302797935:function:day20-lambda-validate-raw-file",
+        "Payload.$": "$"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "RawToProcessedFacts"
+    },
+    "RawToProcessedFacts": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "day20-raw-processed"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "RawToProcessedDimensions"
+    },
+    "RawToProcessedDimensions": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "day20-raw-processed-dimension-tables"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "ProcessedToMDM"
+    },
+    "ProcessedToMDM": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "day20-processed-mdm"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "ProcessedToCurated"
+    },
+    "ProcessedToCurated": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "day20-processed-curated"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "DQScorecard"
+    },
+    "DQScorecard": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "day20-quality-score-card"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 1,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "StartCuratedCrawler"
+    },
+    "StartCuratedCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:startCrawler",
+      "Parameters": {
+        "Name": "day20-curated-crawler"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "WaitCuratedCrawler"
+    },
+    "WaitCuratedCrawler": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "GetCuratedCrawler"
+    },
+    "GetCuratedCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getCrawler",
+      "Parameters": {
+        "Name": "day20-curated-crawler"
+      },
+      "ResultPath": "$.curatedCrawler",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "CuratedCrawlerStateChoice"
+    },
+    "CuratedCrawlerStateChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.curatedCrawler.Crawler.State",
+          "StringEquals": "READY",
+          "Next": "StartDQCrawler"
+        },
+        {
+          "Variable": "$.curatedCrawler.Crawler.State",
+          "StringEquals": "RUNNING",
+          "Next": "WaitCuratedCrawler"
+        },
+        {
+          "Variable": "$.curatedCrawler.Crawler.State",
+          "StringEquals": "STOPPING",
+          "Next": "WaitCuratedCrawler"
+        }
+      ],
+      "Default": "FailPipeline"
+    },
+    "StartDQCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:startCrawler",
+      "Parameters": {
+        "Name": "day20-data-quality"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "WaitDQCrawler"
+    },
+    "WaitDQCrawler": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "GetDQCrawler"
+    },
+    "GetDQCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getCrawler",
+      "Parameters": {
+        "Name": "day20-data-quality"
+      },
+      "ResultPath": "$.dqCrawler",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "DQCrawlerStateChoice"
+    },
+    "DQCrawlerStateChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.dqCrawler.Crawler.State",
+          "StringEquals": "READY",
+          "Next": "RunDQAthenaQuery"
+        },
+        {
+          "Variable": "$.dqCrawler.Crawler.State",
+          "StringEquals": "RUNNING",
+          "Next": "WaitDQCrawler"
+        },
+        {
+          "Variable": "$.dqCrawler.Crawler.State",
+          "StringEquals": "STOPPING",
+          "Next": "WaitDQCrawler"
+        }
+      ],
+      "Default": "FailPipeline"
+    },
+    "RunDQAthenaQuery": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:athena:startQueryExecution",
+      "Parameters": {
+        "QueryString": "SELECT count(*) AS fail_cnt FROM dq_scorecard WHERE status = 'FAIL' AND run_date = CAST(current_date AS varchar)",
+        "QueryExecutionContext": {
+          "Database": "day20-data-quality"
+        },
+        "ResultConfiguration": {
+          "OutputLocation": "s3://day20-demo-oubt/athena-results/"
+        }
+      },
+      "ResultPath": "$.athena",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "WaitForDQAthena"
+    },
+    "WaitForDQAthena": {
+      "Type": "Wait",
+      "Seconds": 10,
+      "Next": "GetDQAthenaStatus"
+    },
+    "GetDQAthenaStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:athena:getQueryExecution",
+      "Parameters": {
+        "QueryExecutionId.$": "$.athena.QueryExecutionId"
+      },
+      "ResultPath": "$.athenaStatus",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "DQAthenaStatusChoice"
+    },
+    "DQAthenaStatusChoice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.athenaStatus.QueryExecution.Status.State",
+          "StringEquals": "SUCCEEDED",
+          "Next": "GetDQAthenaResults"
+        },
+        {
+          "Variable": "$.athenaStatus.QueryExecution.Status.State",
+          "StringEquals": "RUNNING",
+          "Next": "WaitForDQAthena"
+        },
+        {
+          "Variable": "$.athenaStatus.QueryExecution.Status.State",
+          "StringEquals": "QUEUED",
+          "Next": "WaitForDQAthena"
+        }
+      ],
+      "Default": "FailPipeline"
+    },
+    "GetDQAthenaResults": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:athena:getQueryResults",
+      "Parameters": {
+        "QueryExecutionId.$": "$.athena.QueryExecutionId"
+      },
+      "ResultPath": "$.dqResults",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "DQFailCheck"
+    },
+    "DQFailCheck": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.dqResults.ResultSet.Rows[1].Data[0].VarCharValue",
+          "NumericGreaterThan": 0,
+          "Next": "FailPipelineWithDQ"
+        }
+      ],
+      "Default": "LoadToRedshift"
+    },
+    "LoadToRedshift": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "day20-export-to-redshift"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 1,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "RefreshQS_TaxiGoldEnriched"
+    },
+    "RefreshQS_TaxiGoldEnriched": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:quicksight:createIngestion",
+      "Parameters": {
+        "AwsAccountId": "614302797935",
+        "DataSetId": "c796cda4-c6d1-40fa-97e9-4c351ab41a39",
+        "IngestionId.$": "States.Format('ingestion-taxi-{}', $$.Execution.Name)"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "RefreshQS_DQScorecard"
+    },
+    "RefreshQS_DQScorecard": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:quicksight:createIngestion",
+      "Parameters": {
+        "AwsAccountId": "614302797935",
+        "DataSetId": "1092b38a-79c6-4c66-b542-1c3adeb72a3b",
+        "IngestionId.$": "States.Format('ingestion-dq-{}', $$.Execution.Name)"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailPipeline"
+        }
+      ],
+      "Next": "Success"
+    },
+    "FailPipelineWithDQ": {
+      "Type": "Fail",
+      "Cause": "Data Quality checks failed (FAIL rows exist in dq_scorecard for today)",
+      "Error": "DQ_VALIDATION_FAILED"
+    },
+    "Success": {
+      "Type": "Succeed"
+    },
+    "FailPipeline": {
+      "Type": "Fail",
+      "Cause": "Pipeline failed",
+      "Error": "Day20PipelineFailed"
+    }
+  }
+}
