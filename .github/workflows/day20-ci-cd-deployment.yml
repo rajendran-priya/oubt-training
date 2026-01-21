@@ -1,0 +1,46 @@
+name: day20-artifact-deploy
+
+on:
+	push:
+		branches: [ "ci/cd-github-actions" ]
+	pull_request:
+		branches: [ "ci/cd-github-actions" ]
+
+permissions:
+	id-token: write
+	contents: read
+
+jobs:
+	upload-artifacts:
+		runs-on: ubuntu-latest
+		env:
+			BUCKET: day20-demo-oubt
+			PREFIX: scripts
+		steps:
+			- name: Checkout
+				uses: actions/checkout@v4
+
+			- name: Configure AWS Credentials
+				uses: aws-actions/configure-aws-credentials@v4
+				with:
+					role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+					aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+			- name: Upload Glue and Lambda scripts to S3
+				run: |
+					set -euo pipefail
+					declare -A FILES=(
+						[day20/glue/day20-quality-score-card.py]=day20-quality-score-card.py
+						[day20/glue/day20-export-to-redshift.py]=day20-export-to-redshift.py
+						[day20/glue/day20-processed-curated.py]=day20-processed-curated.py
+						[day20/glue/day20-processed-mdm.py]=day20-processed-mdm.py
+						[day20/glue/day20-raw-processed-dimension-tables.py]=day20-raw-processed-dimension-tables.py
+						[day20/glue/day20-raw-processed.py]=day20-raw-processed.py
+						[day20/lambda/day20-lambda-validate-raw-file.py]=day20-lambda-validate-raw-file.py
+					)
+
+					for SRC in "${!FILES[@]}"; do
+						DST="s3://${BUCKET}/${PREFIX}/${FILES[$SRC]}"
+						echo "Uploading ${SRC} -> ${DST}"
+						aws s3 cp "$SRC" "$DST"
+					done
