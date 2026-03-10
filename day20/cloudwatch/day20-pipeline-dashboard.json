@@ -1,0 +1,110 @@
+{
+    "widgets": [
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 0,
+            "width": 24,
+            "height": 3,
+            "properties": {
+                "sparkline": true,
+                "view": "singleValue",
+                "metrics": [
+                    [ "Day20/Governance", "DQ_PassRate", "Dataset", "taxi_gold_enriched", { "region": "us-east-1" } ],
+                    [ ".", "NegativeTripDurationCnt", ".", ".", { "region": "us-east-1" } ],
+                    [ ".", "DQ_FailedChecks", ".", ".", { "region": "us-east-1" } ],
+                    [ ".", "UnknownBoroughPct", ".", ".", { "region": "us-east-1" } ]
+                ],
+                "region": "us-east-1",
+                "period": 300,
+                "title": "Data Quality (Governance)"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 8,
+            "y": 3,
+            "width": 7,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/States", "ExecutionsSucceeded", "StateMachineArn", "arn:aws:states:us-east-1:614302797935:stateMachine:day20-taxi-pipeline-demo" ],
+                    [ ".", "ExecutionsFailed", ".", "." ]
+                ],
+                "region": "us-east-1",
+                "title": "Stepfunction Executions (Succeeded vs Failed)"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 15,
+            "y": 3,
+            "width": 9,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/Lambda", "Errors", "FunctionName", "day20-lambda-validate-raw-file", { "region": "us-east-1" } ]
+                ],
+                "region": "us-east-1",
+                "period": 300,
+                "title": "Lambda Errors"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 3,
+            "width": 8,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "Glue", "glue.succeed.ALL", "Type", "count", "ObservabilityGroup", "error", "JobRunId", "ALL", "JobName", "ALL" ],
+                    [ ".", "glue.error.ALL", ".", ".", ".", ".", ".", ".", ".", "." ]
+                ],
+                "region": "us-east-1"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 8,
+            "y": 9,
+            "width": 6,
+            "height": 6,
+            "properties": {
+                "title": "alarm-day20-pipeline-step-function-failed",
+                "annotations": {
+                    "alarms": [
+                        "arn:aws:cloudwatch:us-east-1:614302797935:alarm:alarm-day20-pipeline-step-function-failed"
+                    ]
+                },
+                "view": "timeSeries",
+                "stacked": false,
+                "type": "chart"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 14,
+            "y": 9,
+            "width": 6,
+            "height": 6,
+            "properties": {
+                "title": "alarm-day20-dq-passrate-below-98",
+                "annotations": {
+                    "alarms": [
+                        "arn:aws:cloudwatch:us-east-1:614302797935:alarm:alarm-day20-dq-passrate-below-98"
+                    ]
+                },
+                "view": "timeSeries",
+                "stacked": false,
+                "type": "chart"
+            }
+        }
+    ]
+}

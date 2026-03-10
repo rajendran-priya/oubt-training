@@ -1,0 +1,43 @@
+name: Upload scripts to S3
+
+on:
+  push:
+    branches: []
+  pull_request:
+    branches: []
+
+env:
+  BRANCH_NAME: "ci/cd-github-actions"
+  UPLOAD_PATH: "day12-13"
+  S3_TARGET: "s3://day12-sql-transformations/sql-scripts/"
+  AWS_REGION: "us-east-1" # Hardcoded here if not in secrets
+
+jobs:
+  upload-to-s3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Branch
+        run: |
+          echo "Target Branch: ${{ env.BRANCH_NAME }}"
+          echo "Current Branch: ${{ github.ref_name }}"
+          if [[ "${{ github.ref_name }}" != "${{ env.BRANCH_NAME }}" ]]; then
+            echo "Branch mismatch. Skipping."
+            exit 0
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload to S3
+        run: |
+          aws s3 sync "${UPLOAD_PATH}" "${S3_TARGET}" --delete \
+          --exclude ".git/*" \
+          --exclude "node_modules/*" \
+          --exclude ".github/*"

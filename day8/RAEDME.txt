@@ -1,0 +1,31 @@
+•	Day 8: AWS Glue & Data Quality
+o	Glue Data Catalog setup , Glue Crawlers: schema discovery, scheduling
+o	Glue ETL jobs: visual and script-based
+o	AWS Glue Data Quality rules
+•	Great Expectations framework
+•	Data profiling and validation
+•	Quality monitoring and alerting
+o	Quality rules as governance artifacts:
+•	Who defines quality rules? (Stewards + Owners)
+•	How are rules versioned and approved?
+•	What happens when quality fails? (Block? Alert? Manual review?)
+o	MDM in ETL:
+•	Reference data validation
+•	Master data enrichment
+•	Orphan detection
+•	SCD implementation in Glue
+o	Quality dimensions mapped to business impact:
+•	Completeness → Can we fulfill orders?
+•	Accuracy → Are we billing correctly?
+•	Timeliness → Are decisions based on current data?
+•	Consistency → Do systems agree on customer address?
+
+o	Hands-on:
+•	Create Glue crawlers and catalog
+•	Build ETL job: CSV to Parquet with quality gates
+•	Implement data quality checks with business-rule documentation
+•	Validate transaction data against master tables (referential integrity)
+•	Create quality scorecard with governance context: 
+•	Quality dimension → Business metric → Owner → Threshold → Action on failure
+
+
